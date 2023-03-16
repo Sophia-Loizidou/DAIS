@@ -1,50 +1,35 @@
 options(expressions = 500000)
 
-## For piecewise-linear signals
 library(earth)
 library(stats)
 library(IDetect)
-#library(freeknotsplines)
 library(not)
 #devtools::install_github("hadley/l1tf")
 library("l1tf")
 
 get.signal <- function(model){
-  
   if(model$cpt.type == "pcwsConstMean"){
-    
     signal <- rep(0, model$n)
-    
     segments <- cbind(c(1,model$cpt+1), c(model$cpt,model$n))
     signal[segments[1,1]:segments[1,2]] <- model$start[1]
-    
     for(j in 2:nrow(segments)) signal[segments[j,1]:segments[j,2]] <- signal[segments[j,1]-1] + model$jump.size[j-1]
-    
-    
   }else if(model$cpt.type == "pcwsLinContMean"){
-    
     signal <- rep(0, model$n)
     segments <- cbind(c(1,model$cpt+1), c(model$cpt,model$n))
-    
     slope <- model$start[2]
     signal[segments[1,1]:segments[1,2]] <- model$start[1] + segments[1,1]:segments[1,2] * model$start[2]
-    
     for(j in 2:nrow(segments)) {
-      
       slope <- slope +  model$jump.size[j-1]
-      
       for(k in segments[j,1]:segments[j,2]) signal[k] <- signal[k-1] + slope
     }
-    
-    
   } 
   return(signal)
 }
 
-
+## Add noise to true signal
 sim.model <- function(model, sigma=1){
-  get.signal(model) + sigma * rnorm(model$n)} 
-
+  get.signal(model) + sigma * rnorm(model$n)
+} 
 
 ## The following function is to get the estimated signal in the case of piecewise-linearity.
 fit_lin_cont <- function(x, cpt) {
@@ -89,24 +74,16 @@ tf.run = function(z, sig = 1, lambdas = exp(seq(log(10), log(1000), length = 250
       CP <- c(CP, ii)
     }
   }
-  
   return(list(cpt = CP, fit = ans.tf, lam = lambdas[k]))
-  
 }
 
 ## The SDLL related functions for ID
 all.slopechanges.are.cpts <- function(x) {
-  
   diff.x <- abs(diff(diff(x)))
-  
   cpts <- which(diff.x > 0)
   no.of.cpt <- length(cpts)
   est <- x
-  
-  
   list(est=est, no.of.cpt=no.of.cpt, cpts=cpts)
-  
-  
 }
 
 idetect.th_linear <- function(x, sigma = stats::mad(diff(diff(x))) / sqrt(6), thr_const = 1.4,
@@ -318,103 +295,60 @@ sol.idetect_linear <- function(x, thr_ic = 1.25, points = 3) {
   
   ret
 }
+
 model.sdll_linear <- function(cptpath.object, sigma = stats::mad(diff(diff(cptpath.object$x))) / sqrt(6), th.const = 1.25, th.const.min.mult = 0.3) {
-  
   x <- cptpath.object$x
-  
   n <- length(x)
-  
   if (n <= 1) {
-    
     est <- x
-    
     no.of.cpt <- 0
-    
     cpts <- integer(0)
-    
   }
-  
   else {
-    
     if (sigma == 0) {
-      
       s0 <- all.slopechanges.are.cpts(x)
       est <- s0$est
       no.of.cpt <- s0$no.of.cpt
       cpts <- s0$cpts
-      
     } else {
-      
       if (is.null(th.const)) {stop("th.const must be specified.")
       }
     }
-    
-    
     th.const.min <- th.const * th.const.min.mult
-    
     th <- th.const * sqrt(2 * log(n)) * sigma
-    
     th.min <- th.const.min * sqrt(2 * log(n)) * sigma
-    
-    
     if (cptpath.object$cands[1,4] < th) {
-      
       no.of.cpt <- 0
-      
       cpts <- integer(0)
-      
     }
-    
     else {
-      
       indices <- which(cptpath.object$cands[,4] > th.min)
-      
       if (length(indices) == 1) {
-        
         cpts <- cptpath.object$cands[indices, 3]
-        
         no.of.cpt <- 1
-        
       }
-      
       else {
-        
         rc.sel <- cptpath.object$cands[indices,,drop=F]
-        
         z <- cptpath.object$cands[indices,4]
-        
         z.l <- length(z)
-        
         dif <- -diff(log(z))
-        
         dif.ord <- order(dif, decreasing=T)
-        
         j <- 1
-        
         while ((j < z.l) & (z[dif.ord[j]+1] > th)) j <- j+1
-        
         if (j < z.l) no.of.cpt <- dif.ord[j] else no.of.cpt <- z.l
-        
         cpts <- sort(cptpath.object$cands[1:no.of.cpt,3])			
-        
       }
-      
-    } 
-    
+    }
     est <- IDetect:::est_signal(x, cpts, type = "slope")
-    
   }
-  
   ret <- list(est=est, no.of.cpt=no.of.cpt, cpts=cpts, model="sdll", solution.path=cptpath.object$method)
-  
   class(ret) <- "cptmodel"
-  
   ret
-  
 }
 
 
 ## Functions for DAIS
+#Finds second largest difference in given sequence and returns the index
 largest_diff_slope <- function(x){
   if(length(x) < 3){
     diff <- 1
@@ -423,6 +357,8 @@ largest_diff_slope <- function(x){
   }
   return(diff)
 }
+
+#list of left and right expanding intervals around the point
 endpoints <- function(l_diff, s, e, points = 3){
   intervals <- list()
   intervals[[1]] <- c(seq(l_diff, s, -points))
@@ -431,6 +367,8 @@ endpoints <- function(l_diff, s, e, points = 3){
   if (intervals[[2]][length(intervals[[2]])] != e){intervals[[2]] = c(intervals[[2]], e)}
   return(intervals)
 }
+
+#Calculate contrast function
 cumsum_lin <- function(x) {
   if (!(is.numeric(x))){
     stop("The input in `x' should be a numeric vector.")
@@ -450,6 +388,7 @@ cumsum_lin <- function(x) {
   }
   return(res)
 }
+
 DAIS_slope <- function(x, sigma = stats::mad(diff(diff(x)))/sqrt(6), thr_const = 1.5, 
                        thr_fin = sigma * thr_const * sqrt(2 * log(length(x))), s = 1, 
                        e = length(x), points = 3, k_l = 1, k_r = 1,
@@ -474,21 +413,6 @@ DAIS_slope <- function(x, sigma = stats::mad(diff(diff(x)))/sqrt(6), thr_const =
     if(any(cpoint %in% cpoints)){
       pos <- which(cpoints == cpoint)
       for(i in 1:length(pos)){
-        #   if(left_checked[pos[i]] < left_points[lur]){
-        #     k_l_temp <- lur + 1
-        #   } else {
-        #     last_checked_l <- which(left_points == left_checked[pos[i]])
-        #     k_l_temp <- max(last_checked_l, k_l)
-        #   }
-        #   if(right_checked[pos[i]] > right_points[rur]){
-        #     k_r_temp <- rur + 1
-        #   } else {
-        #     last_checked_r <- which(right_points == right_checked[pos[i]])
-        #     k_r_temp <- max(last_checked_r, k_r)
-        #   }
-        #   k_l_temp <- min(k_l_temp, k_r_temp)
-        #   k_r_temp <- min(k_l_temp, k_r_temp)
-        # }
         if(left_checked[pos[i]] < left_points[lur]){
           k_l_temp <- lur + 1
           if(right_checked[pos[i]] > right_points[rur]){
@@ -598,7 +522,6 @@ linear.rev.sim <- function(x, q_max_NOT = 25, FKS_knot = 10) {
   print("not")
   z <- not(x, method = "not", contrast = "pcwsLinContMean")
   cpt.ic = features(z, q.max = q_max_NOT)
-  
   notic <- new("cpt.est")
   if (any(is.na(cpt.ic$cpt))) {
     notic@cpt = 0
@@ -610,23 +533,9 @@ linear.rev.sim <- function(x, q_max_NOT = 25, FKS_knot = 10) {
   notic@fit <- fit_lin_cont(x, notic@cpt)
   notic@time <- system.time(features(not(x, method = "not", contrast = "pcwsLinContMean"), q.max = q_max_NOT))[[3]]
   
-  # print("CPOP")
-  # z <- CPOP.run(x, sig = mad(diff(diff(x)))/sqrt(6), useC = F)
-  # 
-  # cpop <- new("cpt.est")
-  # if (length(z$cpt) == 0) {
-  #   cpop@cpt = 0
-  #   cpop@nocpt = 0
-  # } else {
-  #   cpop@cpt = z$cpt
-  #   cpop@nocpt <- length(z$cpt)
-  # }
-  # cpop@fit <- z$fit
-  # cpop@time <- system.time(CPOP.run(x, sig = mad(diff(diff(x)))/sqrt(6), useC = F))[[3]]
   
   print("t1f")
   z <- tf.run(x/(mad(diff(diff(x)))/sqrt(6)))
-  
   t1f <- new("cpt.est")
   if (length(z$cpt) == 0) {
     t1f@cpt = 0
@@ -653,26 +562,6 @@ linear.rev.sim <- function(x, q_max_NOT = 25, FKS_knot = 10) {
   MARS@fit <- fit_lin_cont(x, MARS@cpt)
   MARS@time <- system.time(sort(unique(earth(1:length(x),y=x)$cuts[earth(1:length(x),y=x)$selected.terms,]))[-1])[[3]]
   
-  # print("FKS")
-  # z1 <-  fit.search.numknots(1:length(x), y = x, degree = 1, minknot = 1, maxknot = FKS_knot,
-  #                            alg = "LS", search = "genetic",
-  #                            knotnumcrit = "adjGCV", k = 2, d = 3, seed = 5,
-  #                            stream = 0)
-  # z <- round(z1@optknot)
-  # FKS <- new("cpt.est")
-  # if (length(z) == 0) {
-  #   FKS@cpt = 0
-  #   FKS@nocpt = 0
-  # } else {
-  #   FKS@cpt = z
-  #   FKS@nocpt <- length(z)
-  # }
-  # FKS@fit <- fit_lin_cont(x, FKS@cpt)
-  # FKS@time <- system.time(round(fit.search.numknots(1:length(x), y = x, degree = 1, minknot = 1, maxknot = FKS_knot,
-  #                                                   alg = "LS", search = "genetic",
-  #                                                   knotnumcrit = "adjGCV", k = 2, d = 3, seed = 5,
-  #                                                   stream = 0)@optknot))[[3]]
-  
   print("ID")
   IsolateDetect <- new("cpt.est")
   z = ID_cplm(x)
@@ -697,10 +586,8 @@ linear.rev.sim <- function(x, q_max_NOT = 25, FKS_knot = 10) {
   IsolateDetect_sdll@fit <- IDetect:::est_signal(x, IsolateDetect_sdll@cpt, type = "slope")
   IsolateDetect_sdll@time <- system.time(model.sdll_linear(sol.idetect_linear(x)))[[3]]
   
-  
-  list(notic = notic, MARS = MARS, t1f = t1f, #cpop = cpop, FKS = FKS, 
-       IsolateDetect = IsolateDetect, IsolateDetect_sdll = IsolateDetect_sdll,
-       DAIS = DAIS)
+  list(notic = notic, MARS = MARS, t1f = t1f, IsolateDetect = IsolateDetect, 
+       IsolateDetect_sdll = IsolateDetect_sdll, DAIS = DAIS)
 }
 
 linear_rev.sim.study <- function(model, sigma, m = 100, seed = NULL, gen_qmax = 25) {
@@ -713,10 +600,8 @@ linear_rev.sim.study <- function(model, sigma, m = 100, seed = NULL, gen_qmax = 
   IsolateDetect <- new("est.eval")
   IsolateDetect_sdll <- new("est.eval")
   notic <- new("est.eval")
-  #cpop <- new("est.eval")
   t1f <- new("est.eval")
   MARS <- new("est.eval")
-  #FKS <- new("est.eval")
   
   signal = get.signal(model)
   
@@ -742,13 +627,6 @@ linear_rev.sim.study <- function(model, sigma, m = 100, seed = NULL, gen_qmax = 
     notic@dh[i] <- max(apply(notic@diff, 1, min), apply(notic@diff, 2, min))/ns
     notic@time[i] <- est$notic@time
     
-    # cpop@dnc[i] <- est$cpop@nocpt - no.of.cpt
-    # cpop@mse[i] <- mean((signal - est$cpop@fit)^2)
-    # cpop@diff <- abs(matrix(est$cpop@cpt, nrow = no.of.cpt, ncol = length(est$cpop@cpt), byr = T) - matrix(model$cpt, 
-    #                                                                                                        nrow = no.of.cpt, ncol = length(est$cpop@cpt), byr = F))
-    # cpop@dh[i] <- max(apply(cpop@diff, 1, min), apply(cpop@diff, 2, min))/ns
-    # cpop@time[i] <- est$cpop@time
-    
     t1f@dnc[i] <- est$t1f@nocpt - no.of.cpt
     t1f@cpt[[i]] <- est$t1f@cpt
     t1f@mse[i] <- mean((signal - est$t1f@fit)^2)
@@ -764,13 +642,6 @@ linear_rev.sim.study <- function(model, sigma, m = 100, seed = NULL, gen_qmax = 
                                                                                                            ncol = length(est$MARS@cpt), byr = F))
     MARS@dh[i] <- max(apply(MARS@diff, 1, min), apply(MARS@diff, 2, min))/ns
     MARS@time[i] <- est$MARS@time
-    
-    # FKS@dnc[i] <- est$FKS@nocpt - no.of.cpt
-    # FKS@mse[i] <- mean((signal - est$FKS@fit)^2)
-    # FKS@diff <- abs(matrix(est$FKS@cpt, nrow = no.of.cpt, ncol = length(est$FKS@cpt), byr = T) - matrix(model$cpt, nrow = no.of.cpt, 
-    #                                                                                                     ncol = length(est$FKS@cpt), byr = F))
-    # FKS@dh[i] <- max(apply(FKS@diff, 1, min), apply(FKS@diff, 2, min))/ns
-    # FKS@time[i] <- est$FKS@time
     
     IsolateDetect@dnc[i] <- est$IsolateDetect@nocpt - no.of.cpt
     IsolateDetect@cpt[[i]] <- est$IsolateDetect@cpt
@@ -797,9 +668,8 @@ linear_rev.sim.study <- function(model, sigma, m = 100, seed = NULL, gen_qmax = 
     DAIS@time[i] <- est$DAIS@time
     
   }
-  list(notic = notic, MARS = MARS, t1f = t1f, #cpop = cpop, FKS = FKS, 
-       IsolateDetect = IsolateDetect, IsolateDetect_sdll = IsolateDetect_sdll,
-       DAIS = DAIS)
+  list(notic = notic, MARS = MARS, t1f = t1f, IsolateDetect = IsolateDetect, 
+       IsolateDetect_sdll = IsolateDetect_sdll, DAIS = DAIS)
 }
 
 
@@ -887,42 +757,6 @@ make_table(lin.SIMR4, breaks = c(-100,-15,-2,-1,0,1,14, 115))
 model.wave5 <- list(name = "wave5", cpt.type = "pcwsLinContMean", cpt = (1:19) * 50,
                     jump.size = c(-1/16,-5/16,-5/8,1, 5/16,15/32,-5/8,-7/32,-3/4,13/16,5/16,19/32,-1,-5/8,
                                   23/32,1/2,15/16,-25/16,-5/4), n = 1000, start = c(1, 1/32))
-#lin.SIMR5 = linear_rev.sim.study(model.wave5, m = 100, sigma = 0.6, seed = 16)
 lin.SIMR5 = linear_rev.sim.study(model.wave5, m = 100, sigma = 0.6, seed = 5)
 make_table(lin.SIMR5, breaks = c(-100,-15,-2,-1,0,1,14, 115))
-
-model.wave6 <- list(name = "wave6", cpt.type = "pcwsLinContMean", cpt = c(400, 450, 550, 600),
-                    jump.size = c(1, -2, 2, -1)/4, n = 1000, start = c(0, 0))
-ts.plot(get.signal(model.wave6)+rnorm(1000))
-lin.SIMR6 = linear_rev.sim.study(model.wave6, m = 10, sigma = 0.6, seed = 16)
-make_table(lin.SIMR6, breaks = c(-10,-1,0,1,2,10,100))
-
-model.wave7 <- list(name = "wave7", cpt.type = "pcwsLinContMean", cpt = c(470, 500, 530),
-                    jump.size = c(1, -2, 1)/10, n = 1000, start = c(0, 0))
-ts.plot(get.signal(model.wave7)+rnorm(1000, sd=0.6))
-ts.plot(get.signal(model.wave7))
-lin.SIMR7 = linear_rev.sim.study(model.wave7, m = 100, sigma = 0.6, seed = 16)
-make_table(lin.SIMR7, breaks = c(-10,-1,0,1,2,10,100))
-
-model.wave8 <- list(name = "wave8", cpt.type = "pcwsLinContMean", cpt = c(2500),
-                    jump.size = c(-2)/20, n = 5000, start = c(0, 1))
-ts.plot(get.signal(model.wave8)+rnorm(5000))
-lin.SIMR8 = linear_rev.sim.study(model.wave8, m = 10, sigma = 0.6, seed = 16)
-make_table(lin.SIMR8, breaks = c(-10,-1,0,1,2,10,100))
-
-
-#Save results
-setwd("/Users/sophia.loizidou/Library/Mobile Documents/com~apple~CloudDocs/Sophia/Research Project/New code/Two sided only/Sim Results Slope/")
-saveRDS(lin.SIMR1, 'lin.SIMR1')
-saveRDS(lin.SIMR2, 'lin.SIMR2')
-saveRDS(lin.SIMR3, 'lin.SIMR3')
-saveRDS(lin.SIMR4, 'lin.SIMR4')
-saveRDS(lin.SIMR5, 'lin.SIMR5')
-
-#Load results
-lin.SIMR1 <- readRDS('lin.SIMR1')
-lin.SIMR2 <- readRDS('lin.SIMR2')
-lin.SIMR3 <- readRDS('lin.SIMR3')
-lin.SIMR4 <- readRDS('lin.SIMR4')
-lin.SIMR5 <- readRDS('lin.SIMR5')
 

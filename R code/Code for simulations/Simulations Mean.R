@@ -60,19 +60,6 @@ DAIS_mean <- function(x, sigma = stats::mad(diff(x)/sqrt(2)), thr_const = 1.2,
     if(any(cpoint %in% cpoints)){
       pos <- which(cpoints == cpoint)
       for(i in 1:length(pos)){
-        #   if(left_checked[pos[i]] < left_points[lur]){
-        #     k_l_temp <- lur + 1
-        #   } else {
-        #     last_checked_l <- which(left_points == left_checked[pos[i]])
-        #     k_l_temp <- max(last_checked_l, k_l)
-        #   }
-        #   if(right_checked[pos[i]] > right_points[rur]){
-        #     k_r_temp <- rur + 1
-        #   } else {
-        #     last_checked_r <- which(right_points == right_checked[pos[i]])
-        #     k_r_temp <- max(last_checked_r, k_r)
-        #   }
-        # }
         if(left_checked[pos[i]] < left_points[lur]){
           k_l_temp <- lur + 1
           if(right_checked[pos[i]] > right_points[rur]){
@@ -418,148 +405,59 @@ make_table <- function(x, breaks){
 
 seed.temp=15
 
-## GOOD RESULTS - IN OVERLEAF
-justnoise = rep(0,6000) ## For the time, play a bit with the length
-#justnoise = rep(0,8000)
+justnoise = rep(0,6000)
 NC.small = sim.study.thr(justnoise,sigma=1,true.cpt=c(0),seed=seed.temp, const = 1.2, max_two_sides = 500) ## GOOD RESULTS, with 1.2
 make_table(NC.small, breaks = c(-1,0,1,2,50))
-xtable::xtable(make_table(NC.small, breaks = c(-1,0,1,2,10)), type = "latex", align = '|c|c|c|c|c|c|c|c|c|c|', digits=5)
 
-## In overleaf
-long_signal <- c(rep(0,5500), rep(1.5,5500)) ## play a bit with the length
+long_signal <- c(rep(0,5500), rep(1.5,5500))
 SIMR.large <- sim.study.thr(long_signal,true.cpt=5500,sigma=1,seed=seed.temp, points=3, 
                             const = 1.2, max_two_sides = 100) ## 1.2
 make_table(SIMR.large, breaks = c(-1,0,1,2,10))
 
-##GOOD - IN OVERLEAF
-symmetric <- c(rep(0, 485), rep(1, 30), rep(0, 485))
-SIMR13.small <- sim.study.thr(symmetric,true.cpt=c(485, 515),sigma=1,seed=seed.temp,m=100, 
+small_dist <- c(rep(0, 485), rep(1, 30), rep(0, 485))
+SIMR13.small <- sim.study.thr(small_dist,true.cpt=c(485, 515),sigma=1,seed=seed.temp,m=100, 
                               const = 1.2, max_two_sides =100)
 make_table(SIMR13.small, breaks = c(-3,-2,-1,0,1,2,50))
 
-
-symmetric2 <- c(rep(0, 485), rep(1, 30), rep(0, 385), rep(1.5,30), rep(0,70))
-SIMR14.small <- sim.study.thr(symmetric2,true.cpt=c(485, 515, 900, 930),sigma=1,seed=seed.temp,m=100, 
+small_dist2 <- c(rep(0, 485), rep(1, 30), rep(0, 385), rep(1.5,30), rep(0,70))
+SIMR14.small <- sim.study.thr(small_dist2,true.cpt=c(485, 515, 900, 930),sigma=1,seed=seed.temp,m=100, 
                               const = 1.2, max_two_sides =100)
 make_table(SIMR14.small, breaks = c(-10,-4,-3,-2,-1,0,1,2,50))
 
-
-symmetric3 <- c(rep(0,100), rep(1.5,30), rep(0, 355), rep(1, 30), rep(0, 355), rep(1.5,30), rep(0,100))
-SIMR15.small <- sim.study.thr(symmetric3,true.cpt=c(100, 130, 485, 515, 870, 900),sigma=1,seed=seed.temp,m=100, 
+small_dist3 <- c(rep(0,100), rep(1.5,30), rep(0, 355), rep(1, 30), rep(0, 355), rep(1.5,30), rep(0,100))
+SIMR15.small <- sim.study.thr(small_dist3,true.cpt=c(100, 130, 485, 515, 870, 900),sigma=1,seed=seed.temp,m=100, 
                               const = 1.2, max_two_sides =100)
 make_table(SIMR15.small, breaks = c(-10,-3,-2,-1,0,1,2,50))
-
 
 stairs10 = c(rep(1,10),rep(2,10),rep(3,10),rep(4,10),rep(5,10),rep(6,10),rep(7,10),rep(8,10),rep(9,10),rep(10,10),rep(11,10),rep(12,10),rep(13,10),rep(14,10),rep(15,10))
 SIMR5.small = sim.study.thr(stairs10,true.cpt=seq(11,141,10),sigma=0.3,seed=seed.temp, 
                             const = 1.2, max_two_sides = 100)
 make_table(SIMR5.small, breaks = c(-10,-3,-2,-1,0,1,2,10))
 
-
 blocks = c(rep(0,205),rep(14.64,62),rep(-3.66,41),rep(7.32,164),rep(-7.32,40),rep(10.98,308),
            rep(-4.39,82),rep(3.29,430),rep(19.03,225),rep(7.68,41),rep(15.37,61),rep(0,389))
-blocks2 = c(rep(0,200-7),rep(14.64,67),rep(-3.66,45+5),rep(7.32,168),rep(-7.32,40),rep(10.98,310),
-            rep(-4.39,80+5),rep(3.29,430),rep(19.03,225),rep(7.68,41+50),rep(0,389))
 SIMR1.small2 = sim.study.thr(blocks,true.cpt = which(diff(blocks) != 0),sigma=10,
-                             seed=seed.temp, const = 1.2, m=100, max_two_sides = 100) ## GOOD RESULTS with 1.2
-make_table(SIMR1.small2, breaks = c(-10,-5,-2,1,4,10))
+                             seed=seed.temp, const = 1.2, m=100, max_two_sides = 100)
 make_table(SIMR1.small2, breaks = c(-10,-5,-2,-1,0,1,4,10))
-xtable::xtable(make_table(SIMR1.small2, breaks = c(-10,-2,1,2,10)), type = "latex", align = '|c|c|c|c|c|c|c|c|c|c|c|c|', digits=5)
 
-## NOT VERY GOOD RESULTS - Not IN OVERLEAF
 mix2 = c(rep(7,11),rep(-7,10),rep(6,20),rep(-6,20),rep(5,30),rep(-5,30),rep(4,40),rep(-4,40),
          rep(3,50),rep(-3,50))
 SIMR3.small2 = sim.study.thr(mix2,true.cpt=c(11,21,41,61,91,121,161,201,251), sigma=4,seed=seed.temp, 
                              const = 1.2, max_two_sides = 100)
 make_table(SIMR3.small2, breaks = c(-10,-3,-2,-1,0,1,2,10))
 
-
-##GOOD - not IN OVERLEAF
 teeth10 = c(rep(0,11),rep(1,20),rep(0,20),rep(1,20),rep(0,20),rep(1,20),rep(0,20),rep(1,20),
             rep(0,20),rep(1,20),rep(0,20),rep(1,20),rep(0,20),rep(1,19))
 SIMR4.small = sim.study.thr(teeth10,true.cpt=seq(11,251,20),0.4,seed=seed.temp, 
                             const = 1.2, max_two_sides = 100)
 make_table(SIMR4.small, breaks = c(-10,-3,-2,-1,0,1,2,3,10)) 
 
-## NOT VERY GOOD - not in overleaf
 extr_short_2_cpt <- c(rep(0,15), rep(2,15), rep(-0.5,10))
 SIMR8.small = sim.study.thr(extr_short_2_cpt,true.cpt=c(15,30),sigma=1,seed=seed.temp, 
                             const = 1.2, max_two_sides = 100)
 make_table(SIMR8.small, breaks = c(-3,-2,-1,0,1,2,10,46))
 
-symmetric4 <- c(rep(0,80), rep(1.5,20), rep(0, 800), rep(1.5,20), rep(0,80))
-SIMR16.small <- sim.study.thr(symmetric4,true.cpt=c(80, 100, 900, 920),sigma=1,seed=seed.temp,m=100, 
-                              const = 1.2, max_two_sides =100)
-make_table(SIMR16.small, breaks = c(-10,-4,-3,-2,-1,0,1,2,50))
-
-fms2 = c(rep(-0.18,139),rep(0.08,87),rep(1.07,14),rep(-0.53,60),rep(0.16,9+24),rep(-0.16,164))
-SIMR2.small2 = sim.study.thr(fms2,true.cpt = c(139,226,240,300,333),sigma=0.3,seed=seed.temp, const = 1.2) ## 1.2
-make_table(SIMR2.small2, breaks = c(-3,-2,-1,0,1,2,10,50))
-
-long_teeth = rep(c(rep(0,15),rep(3.2,15)),1000)
-SIMRlong_teeth = sim.study.thr(long_teeth,true.cpt=seq(12,24000-12,12),sigma=0.9,seed=15, 
-                               m=100, Kmax_wbs = 2000, qmax_NOT = 2000, const = 1.2)
-
-myteeth20 = rep(c(rep(0,40),rep(1.5,40)),125)
-SIMR6.small = sim.study.thr(myteeth20,true.cpt = seq(40,9960,40),sigma=1,seed=seed.temp)
-
-extr_short_2_cpt2 <- c(rep(0,3), rep(3,4), rep(0,3))
-SIMR9.small = sim.study.thr(extr_short_2_cpt2,true.cpt=c(3, 7),sigma=1,seed=seed.temp, const = 1.2)
-make_table(SIMR9.small, breaks = c(-3,-2,-1,0,1,2,10,46))
-
-strong_sig_low_noise <- c(rep(0,100), rep(5,500), rep(0, 1000), rep(10, 400), rep(2, 500))
-SIMR10.small <- sim.study.thr(strong_sig_low_noise,true.cpt=c(100, 600, 1600, 2000),sigma=0.1, seed=seed.temp)
-make_table(SIMR10.small, breaks = c(-10,-3,-2,-1,0,1,2,10,46))
-
 one_spike_in_middle <- c(rep(0,999),rep(100, 2), rep(0,999))
 SIMR11.small <- sim.study.thr(one_spike_in_middle,true.cpt=c(1000, 1001),sigma=1,seed=seed.temp, m=100)
 make_table(SIMR11.small, breaks = c(-3,-2,-1,0,1,2,10,46))
 
-one_change <- c(rep(0, 2500), rep(3, 2500))
-SIMR12.small <- sim.study.thr(one_change,true.cpt=2500,sigma=1,seed=seed.temp,m=100)
-
-spikes <- c(rep(0, 3), rep(3, 495), rep(0, 4), rep(3, 495), rep(0, 3))
-SIMR14.small <- sim.study.thr(spikes,true.cpt=c(3, 498, 502, 997),sigma=1,seed=seed.temp,m=100, points=3, const = 1.1)
-
-spikes2 <- c(rep(0, 3), rep(3, 493), rep(0, 4), rep(3, 4), rep(0, 493), rep(3, 3))
-SIMR14.small2 <- sim.study.thr(spikes2,true.cpt=c(3, 496, 500, 504, 997),sigma=1,seed=seed.temp,m=100, points=3, const = 1.15)
-
-pit <- c(rep(0, 50), rep(c(rep(-5, 50), rep(0, 3)), 14), rep(-5, 50), rep(0, 50))
-SIMR15.small <- sim.study.thr(pit,true.cpt=which(diff(pit) != 0),sigma=1,seed=seed.temp,const = 1.15)
-
-long <- c(rep(0, 2000), rep(3, 2000), rep(0, 2000))
-SIMR16.small <- sim.study.thr(long,true.cpt=c(2000, 4000),sigma=1,seed=seed.temp,const = 1.15)
-
-try1 <- c(rep(0, 5), rep(2,5), rep(0,5), rep(2, 975))
-SIMR17.small <- sim.study.thr(try1,true.cpt=c(5, 10, 15),sigma=0.9,seed=seed.temp,const = 1.2)
-
-middle_points <- c(rep(0, 990), rep(1.5, 20), rep(0, 990))
-SIMR.middle <- sim.study.thr(middle_points,true.cpt=2000,sigma=1,seed=seed.temp,m=10, points=3, const = 1.1)
-
-
-#Save results
-setwd("/Users/sophia.loizidou/Library/Mobile Documents/com~apple~CloudDocs/Sophia/Research Project/New code/Two sided only/Sim Results Mean/")
-saveRDS(NC.small, 'justnoise')
-saveRDS(SIMR.large, 'long_signal')
-saveRDS(SIMR13.small, 'symmetric')
-saveRDS(SIMR14.small, 'symmetric2')
-saveRDS(SIMR15.small, 'symmetric3')
-saveRDS(SIMR5.small, 'stairs')
-
-saveRDS(SIMR3.small2, 'mix')
-saveRDS(SIMR4.small, 'teeth')
-saveRDS(SIMR8.small, 'extra short')
-saveRDS(SIMR1.small2, 'blocks')
-
-#Load results
-NC.small <- readRDS('justnoise')
-SIMR.large <- readRDS('long_signal')
-SIMR13.small <- readRDS('symmetric')
-SIMR14.small <- readRDS('symmetric2')
-SIMR15.small <- readRDS('symmetric3')
-
-SIMR1.small2 <- readRDS('blocks')
-SIMR3.small2 <- readRDS('mix')
-SIMR4.small <- readRDS('teeth')
-SIMR5.small <- readRDS('stairs')
-SIMR8.small <- readRDS('extra short')
