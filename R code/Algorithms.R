@@ -3,7 +3,7 @@ largest_diff <- function(x){
   sort.int(abs(diff(x)), decreasing=TRUE, index.return = TRUE)$ix[1]
 }
 
-#list of left and right expanding intervals around the point
+#list of left and right expanding intervals around the largest difference
 endpoints <- function(l_diff, s, e, points = 3){
   intervals <- list()
   intervals[[1]] <- c(seq(l_diff, s, -points))
@@ -41,6 +41,7 @@ DAIS_mean <- function(x, sigma = stats::mad(diff(x)/sqrt(2)), thr_const = 1.2,
     cpoint <- largest_diff(x[s:(e-1)]) + s - 1 #find largest differences
     if(print == TRUE){cat('largest difference at', cpoint, 'when s is equal to', s, 
                           'and e is', e, '\n')}
+    # create endpoints of intervals to be checked
     endpoints <- endpoints(l_diff=cpoint, s=s, e=e, points = points)
     left_points <- endpoints[[1]]
     right_points <- endpoints[[2]]
@@ -48,9 +49,24 @@ DAIS_mean <- function(x, sigma = stats::mad(diff(x)/sqrt(2)), thr_const = 1.2,
     rur <- length(right_points)
     k_l_temp <- 1
     k_r_temp <- 1
+    # check if some intervals have already been checked
     if(any(cpoint %in% cpoints)){
       pos <- which(cpoints == cpoint)
+      # check all end-points that were expanded around the same largest difference
       for(i in 1:length(pos)){
+      #   if(left_checked[pos[i]] < left_points[lur]){
+      #     k_l_temp <- lur + 1
+      #   } else {
+      #     last_checked_l <- which(left_points == left_checked[pos[i]])
+      #     k_l_temp <- max(last_checked_l, k_l)
+      #   }
+      #   if(right_checked[pos[i]] > right_points[rur]){
+      #     k_r_temp <- rur + 1
+      #   } else {
+      #     last_checked_r <- which(right_points == right_checked[pos[i]])
+      #     k_r_temp <- max(last_checked_r, k_r)
+      #   }
+      # }
         if(left_checked[pos[i]] < left_points[lur]){
           k_l_temp <- lur + 1
           if(right_checked[pos[i]] > right_points[rur]){
@@ -161,6 +177,7 @@ largest_diff_slope <- function(x){
 }
 
 #list of left and right expanding intervals around the point
+#same as for changes in the mean
 endpoints <- function(l_diff, s, e, points = 3){
   intervals <- list()
   intervals[[1]] <- c(seq(l_diff, s, -points))
@@ -215,6 +232,21 @@ DAIS_slope <- function(x, sigma = stats::mad(diff(diff(x)))/sqrt(6), thr_const =
     if(any(cpoint %in% cpoints)){
       pos <- which(cpoints == cpoint)
       for(i in 1:length(pos)){
+      #   if(left_checked[pos[i]] < left_points[lur]){
+      #     k_l_temp <- lur + 1
+      #   } else {
+      #     last_checked_l <- which(left_points == left_checked[pos[i]])
+      #     k_l_temp <- max(last_checked_l, k_l)
+      #   }
+      #   if(right_checked[pos[i]] > right_points[rur]){
+      #     k_r_temp <- rur + 1
+      #   } else {
+      #     last_checked_r <- which(right_points == right_checked[pos[i]])
+      #     k_r_temp <- max(last_checked_r, k_r)
+      #   }
+      #   k_l_temp <- min(k_l_temp, k_r_temp)
+      #   k_r_temp <- min(k_l_temp, k_r_temp)
+      # }
         if(left_checked[pos[i]] < left_points[lur]){
           k_l_temp <- lur + 1
           if(right_checked[pos[i]] > right_points[rur]){
@@ -312,3 +344,4 @@ DAIS_slope <- function(x, sigma = stats::mad(diff(diff(x)))/sqrt(6), thr_const =
   cpt <- cpt[cpt != 0]
   return(sort(cpt))
 }
+
