@@ -6,8 +6,10 @@ largest_diff <- function(x){
 #list of left and right expanding intervals around the largest difference
 endpoints <- function(l_diff, s, e, points = 3){
   intervals <- list()
+  # 
   intervals[[1]] <- c(seq(l_diff, s, -points))
   if (intervals[[1]][length(intervals[[1]])] != s){intervals[[1]] = c(intervals[[1]], s)}
+  # 
   intervals[[2]] <- seq(min(e, l_diff + points - 1), e, points)
   if (intervals[[2]][length(intervals[[2]])] != e){intervals[[2]] = c(intervals[[2]], e)}
   return(intervals)
@@ -30,7 +32,7 @@ DAIS_mean <- function(x, sigma = stats::mad(diff(x)/sqrt(2)), thr_const = 1.2,
                       thr_fin = sigma * thr_const * sqrt(2 * log(length(x))), s = 1, 
                       e = length(x), points = 3, k_l = 1, k_r = 1,
                       left_checked = numeric(), right_checked = numeric(), 
-                      cpoints = numeric(), print = FALSE){
+                      cpoints = numeric(), verbose = FALSE){
   points <- as.integer(points)
   l <- length(x)
   chp <- 0
@@ -39,8 +41,9 @@ DAIS_mean <- function(x, sigma = stats::mad(diff(x)/sqrt(2)), thr_const = 1.2,
   }
   else{
     cpoint <- largest_diff(x[s:(e-1)]) + s - 1 #find largest differences
-    if(print == TRUE){cat('largest difference at', cpoint, 'when s is equal to', s, 
-                          'and e is', e, '\n')}
+    if(verbose == TRUE){
+      cat('largest difference at', cpoint, 'when s is equal to', s, 'and e is', e, '\n')
+    }
     # create endpoints of intervals to be checked
     endpoints <- endpoints(l_diff=cpoint, s=s, e=e, points = points)
     left_points <- endpoints[[1]]
@@ -94,14 +97,14 @@ DAIS_mean <- function(x, sigma = stats::mad(diff(x)/sqrt(2)), thr_const = 1.2,
     flag_l <- 0
     flag_r <- 0
     while((chp == 0) & ((k_l_temp <= lur) | (k_r_temp <= rur))){
-      if(print == TRUE){cat(left_points[k_l_temp],right_points[k_r_temp], '\n')}
+      if(verbose == TRUE){cat(left_points[k_l_temp],right_points[k_r_temp], '\n')}
       x_temp <- x[left_points[k_l_temp]:right_points[k_r_temp]]
       ipc <- inner_prod_cumsum(x_temp)
       pos <- which.max(abs(ipc)) + left_points[k_l_temp] - 1
       CUSUM <- abs(ipc[pos - left_points[k_l_temp] + 1])
       if (CUSUM > thr_fin) {
         chp <- pos
-        if(print == TRUE){cat('cpt', chp, "detected in the interval [", left_points[k_l_temp],
+        if(verbose == TRUE){cat('cpt', chp, "detected in the interval [", left_points[k_l_temp],
                               ',', right_points[k_r_temp], '] \n')}
       }
       else {
@@ -150,11 +153,11 @@ DAIS_mean <- function(x, sigma = stats::mad(diff(x)/sqrt(2)), thr_const = 1.2,
       r_left <- DAIS_mean(x, s = s, e = chp, points = points, 
                           thr_fin = thr_fin, left_checked = left_checked, 
                           right_checked = right_checked, 
-                          cpoints = cpoints, print = print)
+                          cpoints = cpoints, verbose = verbose)
       r_right <- DAIS_mean(x, s = chp+1, e = e, points = points, 
                            thr_fin = thr_fin, left_checked = left_checked, 
                            right_checked = right_checked, 
-                           cpoints = cpoints, print = print)
+                           cpoints = cpoints, verbose = verbose)
       cpt <- c(chp, r_left, r_right)
     }
     else {
@@ -212,7 +215,7 @@ DAIS_slope <- function(x, sigma = stats::mad(diff(diff(x)))/sqrt(6), thr_const =
                        thr_fin = sigma * thr_const * sqrt(2 * log(length(x))), s = 1, 
                        e = length(x), points = 3, k_l = 1, k_r = 1,
                        left_checked = numeric(), right_checked = numeric(), 
-                       cpoints = numeric(), print = FALSE){
+                       cpoints = numeric(), verbose = FALSE){
   points <- as.integer(points)
   l <- length(x)
   chp <- 0
@@ -221,7 +224,7 @@ DAIS_slope <- function(x, sigma = stats::mad(diff(diff(x)))/sqrt(6), thr_const =
   }
   else{
     cpoint <- largest_diff_slope(x[s:(e-1)]) + s - 1 #find largest differences
-    if(print == TRUE){cat('largest difference at', cpoint, 'when s is equal to', s, 'and e is', e, '\n')}
+    if(verbose == TRUE){cat('largest difference at', cpoint, 'when s is equal to', s, 'and e is', e, '\n')}
     endpoints <- endpoints(l_diff=cpoint, s=s, e=e, points = points)
     left_points <- endpoints[[1]]
     right_points <- endpoints[[2]]
@@ -274,14 +277,14 @@ DAIS_slope <- function(x, sigma = stats::mad(diff(diff(x)))/sqrt(6), thr_const =
     flag_l <- 0
     flag_r <- 0
     while((chp == 0) & ((k_l_temp <= lur) | (k_r_temp <= rur))){
-      if(print == TRUE){cat(left_points[k_l_temp],right_points[k_r_temp], '\n')}
+      if(verbose == TRUE){cat(left_points[k_l_temp],right_points[k_r_temp], '\n')}
       x_temp <- x[left_points[k_l_temp]:right_points[k_r_temp]]
       ipc <- cumsum_lin(x_temp)
       pos <- which.max(abs(ipc)) + left_points[k_l_temp] - 1
       CUSUM <- abs(ipc[pos - left_points[k_l_temp] + 1])
       if (CUSUM > thr_fin) {
         chp <- pos
-        if(print == TRUE){cat('cpt', chp, "detected in the interval [", left_points[k_l_temp],
+        if(verbose == TRUE){cat('cpt', chp, "detected in the interval [", left_points[k_l_temp],
                               ',', right_points[k_r_temp], '] \n')}
       }
       else {
@@ -330,11 +333,11 @@ DAIS_slope <- function(x, sigma = stats::mad(diff(diff(x)))/sqrt(6), thr_const =
       r_left <- DAIS_slope(x, s = s, e = chp, points = points, 
                            thr_fin = thr_fin, left_checked = left_checked, 
                            right_checked = right_checked, 
-                           cpoints = cpoints, print = print)
+                           cpoints = cpoints, verbose = verbose)
       r_right <- DAIS_slope(x, s = chp+1, e = e, points = points, 
                             thr_fin = thr_fin, left_checked = left_checked, 
                             right_checked = right_checked, 
-                            cpoints = cpoints, print = print)
+                            cpoints = cpoints, verbose = verbose)
       cpt <- c(chp, r_left, r_right)
     }
     else {
