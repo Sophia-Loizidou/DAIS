@@ -1,12 +1,45 @@
+## DAIS function
+DAIS <- function(x, contrast = c("mean", "slope"), sigma = NULL, thr_const = NULL, 
+                 s = 1, e = length(x), points = 3, verbose = FALSE){
+  if(!is.vector(x)){stop("x should be a vector of the signal to be checked for change-points")}
+  if(length(contrast) == 2){stop("contrast must be either 'mean' or 'slope'")}
+  if(!((contrast == "mean") | (contrast == "slope"))){stop("contrast must be either 'mean' or 'slope'")}
+  
+  if(contrast == "mean"){
+    if(is.null(sigma)){sigma = stats::mad(diff(x)/sqrt(2))}
+    if(is.null(thr_const)){thr_const = 1.2}
+    cpt <- DAIS_mean(x, sigma = sigma, thr_const = thr_const,
+                     thr_fin = sigma * thr_const * sqrt(2 * log(length(x))),
+                     s = s, e = e, points = points, k_l = 1, k_r = 1,
+                     left_checked = numeric(), right_checked = numeric(),
+                     cpoints = numeric(), verbose = verbose)
+  } else if(contrast == "slope"){
+    if(is.null(sigma)){sigma = stats::mad(diff(diff(x)))/sqrt(6)}
+    if(is.null(thr_const)){thr_const = 1.5}
+    cpt <- DAIS_slope(x, sigma = sigma, thr_const = thr_const,
+                      thr_fin = sigma * thr_const * sqrt(2 * log(length(x))),
+                      s = s, e = e, points = points, k_l = 1, k_r = 1,
+                      left_checked = numeric(), right_checked = numeric(),
+                      cpoints = numeric(), verbose = verbose)
+  }
+  return(cpt)
+}
+
 ### Algorithm for changes in the mean
 
 #Finds largest difference in given sequence and returns the index
 largest_diff <- function(x){
+  if(!is.vector(x)){stop("x should be a vector")}
+  
   sort.int(abs(diff(x)), decreasing=TRUE, index.return = TRUE)$ix[1]
 }
 
 #list of left and right expanding intervals around the largest difference
 endpoints <- function(l_diff, s, e, points = 3){
+  if(s > e){stop("s should be smaller than e")}
+  if(s > l_diff){stop("l_diff should be larger than s")}
+  if(e < l_diff){stop("l_diff should be smaller than e")}
+  
   intervals <- list()
   
   #left end-points
@@ -22,6 +55,8 @@ endpoints <- function(l_diff, s, e, points = 3){
 
 #Calculate CUSUM
 inner_prod_cumsum <- function(x, y = cumsum(x)) {
+  if(!is.vector(x)){stop("x should be a vector")}
+  
   if(length(x) == 1){
     res <- 0
   }
@@ -39,6 +74,8 @@ DAIS_mean <- function(x, sigma = stats::mad(diff(x)/sqrt(2)), thr_const = 1.2,
                       e = length(x), points = 3, k_l = 1, k_r = 1,
                       left_checked = numeric(), right_checked = numeric(), 
                       cpoints = numeric(), verbose = FALSE){
+  if(!is.vector(x)){stop("x should be a vector of the signal to be checked for change-points")}
+  
   points <- as.integer(points)
   l <- length(x)
   chp <- 0

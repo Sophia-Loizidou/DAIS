@@ -1,4 +1,3 @@
-
 ### For piecewise-constant signals
 
 library(devtools)
@@ -35,12 +34,12 @@ sim_thr <- function(x, const = 1.15, points, Kmax_wbs, qmax_NOT, delta){
   
   print("DAIS")
   DAIS <- new("cpt.est")
-  z <- DAIS_mean(x, thr_const = const, points=points)
+  z <- DAIS(x, contrast = "mean", thr_const = const, points=points)
   if(length(z) == 0){DAIS@cpt = 0
   DAIS@nocpt = 0}
   else{DAIS@cpt <- z
   DAIS@nocpt <- length(z)}
-  DAIS@time <- system.time(DAIS_mean(x, thr_const = const, points=points))[[3]]
+  DAIS@time <- system.time(DAIS(x, contrast = "mean", thr_const = const, points=points))[[3]]
   DAIS@mean <- mean.from.cpt(x, DAIS@cpt)
   
   print("ID_th")
@@ -376,11 +375,11 @@ linear.rev.sim <- function(x, q_max_NOT = 25, FKS_knot = 10) {
   
   print("DAIS")
   DAIS <- new("cpt.est")
-  z = DAIS_slope(x)
+  z = DAIS(x, contrast = "slope")
   DAIS@cpt <- as.numeric(z)
   DAIS@nocpt <- length(z)
   DAIS@fit <- fit_lin_cont(x, DAIS@cpt)
-  DAIS@time <- system.time(DAIS_slope(x))[[3]]
+  DAIS@time <- system.time(DAIS(x, contrast = "slope"))[[3]]
   
   print("ID_th")
   ID_th <- new("cpt.est")
@@ -454,7 +453,7 @@ linear.rev.sim <- function(x, q_max_NOT = 25, FKS_knot = 10) {
     t1f@cpt = z$cpt
     t1f@nocpt <- length(z$cpt)
   }
-  t1f@fit <- z$fit
+  t1f@fit <- fit_lin_cont(x, t1f@cpt)
   t1f@time <- system.time(tf.run(x/(mad(diff(diff(x)))/sqrt(6))))[[3]]
   
   print("trendsegment")
