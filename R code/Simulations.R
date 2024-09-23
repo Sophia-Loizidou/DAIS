@@ -5,136 +5,185 @@ library(IDetect)
 library(wbs)
 library(breakfast)
 library(changepoint)
+library(changepoints)
 library(changepoint.np)
 library(not)
-library(mosum)
 library(mscp)
+library(mosum)
+
+# The necessary mcode for seedBS can be downloaded from https://github.com/kovacssolt/SeedBinSeg
+
+# The following code requires first running the R file Algorithms.R
 
 options(expressions = 500000)
 
-mean.from.cpt <- function(x, cpt) {
-  n <- length(x)
-  len.cpt <- length(cpt)
-  if (len.cpt) cpt <- sort(cpt)
-  beg <- endd <- rep(0, len.cpt+1)
-  beg[1] <- 1
-  endd[len.cpt+1] <- n
-  if (len.cpt) {
-    beg[2:(len.cpt+1)] <- cpt+1
-    endd[1:len.cpt] <- cpt
-  }
-  means <- rep(0, len.cpt+1)
-  for (i in 1:(len.cpt+1)) means[i] <- mean(x[beg[i]:endd[i]])
-  rep(means, endd-beg+1)
-}
-
-sim_thr <- function(x, const = 1.15, points, Kmax_wbs, qmax_NOT, delta){
+sim_thr <- function(x, const = 1.2, points, qmax_NOT, delta, verbose){
   setClass("cpt.est", representation(cpt="numeric", nocpt="numeric",det_time="numeric", time="numeric", mean="numeric"), 
            prototype(cpt=numeric(0), nocpt=0, det_time=numeric(0), time=numeric(0), mean=numeric(0)))
   
-  print("DAIS")
+  if(verbose){print("DAIS")}
   DAIS <- new("cpt.est")
+  start.time <- Sys.time()
   z <- DAIS(x, contrast = "mean", thr_const = const, points=points)
+  end_time <- Sys.time()
   if(length(z) == 0){DAIS@cpt = 0
   DAIS@nocpt = 0}
   else{DAIS@cpt <- z
   DAIS@nocpt <- length(z)}
-  DAIS@time <- system.time(DAIS(x, contrast = "mean", thr_const = const, points=points))[[3]]
+  DAIS@time <- as.numeric(end_time - start.time)
   DAIS@mean <- mean.from.cpt(x, DAIS@cpt)
   
-  print("ID_th")
+  if(verbose){print("ID")}
+  ID <- new("cpt.est")
+  start.time <- Sys.time()
+  z <- ID(x)
+  end_time <- Sys.time()
+  if(z$no_cpt == 0){ID@cpt = 0
+  ID@nocpt = 0}
+  else{ID@cpt <- z$cpt
+  ID@nocpt <- z$no_cpt}
+  ID@time <- as.numeric(end_time - start.time)
+  ID@mean <- mean.from.cpt(x, ID@cpt)
+  
+  if(verbose){print("ID_th")}
   ID_th <- new("cpt.est")
+  start.time <- Sys.time()
   z <- pcm_th(x, points = points, thr_const = 1.1)
+  end_time <- Sys.time()
   if(length(z) == 0){ID_th@cpt = 0
   ID_th@nocpt = 0}
   else{ID_th@cpt <- z
   ID_th@nocpt <- length(z)}
-  ID_th@time <- system.time(pcm_th(x, points = points, thr_const = 1.1))[[3]]
+  ID_th@time <- as.numeric(end_time - start.time)
   ID_th@mean <- mean.from.cpt(x, ID_th@cpt)
   
-  print("ID_sic")
+  if(verbose){print("ID_sic")}
   ID_sic <- new("cpt.est")
+  start.time <- Sys.time()
   z <- pcm_ic(x)
+  end_time <- Sys.time()
   if(any(is.na(z$cpt_ic$sic_pen))){ID_sic@cpt = 0
   ID_sic@nocpt = 0}
   else{ID_sic@cpt <- z$cpt_ic$sic_pen
   ID_sic@nocpt <- length(z$cpt_ic$sic_pen)}
-  ID_sic@time <- system.time(pcm_ic(x))[[3]]
+  ID_sic@time <- as.numeric(end_time - start.time)
   ID_sic@mean <- mean.from.cpt(x, ID_sic@cpt)
   
-  print("wbs")
-  z <- wbs(x)
-  cpt.z_1 = changepoints(z,th.const=1,Kmax=Kmax_wbs)
+  if(verbose){print("wbs")}
   WBS_th <- new("cpt.est")
-  if(any(is.na(cpt.z_1$cpt.th[[1]]))){WBS_th@cpt = 0}
-  else{WBS_th@cpt <- cpt.z_1$cpt.th[[1]]}
-  WBS_th@nocpt <- cpt.z_1$no.cpt.th
+  start.time <- Sys.time()
+  z <- model.thresh(sol.wbs(x), th_const = 1)
+  end_time <- Sys.time()
+  WBS_th@cpt = z$cpts
+  WBS_th@nocpt <- z$no.of.cpt
+  WBS_th@time <- as.numeric(end_time - start.time)
   WBS_th@mean <- mean.from.cpt(x, WBS_th@cpt)
-  WBS_th@time <- system.time(changepoints(wbs(x,5000),th.const=1,Kmax=Kmax_wbs))[[3]]
   
   wbssbic <- new("cpt.est")
-  if(any(is.na(cpt.z_1$cpt.ic[[1]]))) {wbssbic@cpt = 0}
-  else {wbssbic@cpt= cpt.z_1$cpt.ic[[1]]}
-  wbssbic@nocpt <- cpt.z_1$no.cpt.ic[[1]]
-  wbssbic@mean <- mean.from.cpt(x, wbssbic@cpt) ## The computational time is the same as in wbs10
+  start.time <- Sys.time()
+  z <- model.ic(sol.wbs(x))
+  end_time <- Sys.time()
+  wbssbic@cpt = z$cpts
+  wbssbic@nocpt <- z$no.of.cpt
+  wbssbic@time <- as.numeric(end_time - start.time)
+  wbssbic@mean <- mean.from.cpt(x, wbssbic@cpt)
   
-  print("wbs2")
+  if(verbose){print("wbs2")}
   wbs2 <- new("cpt.est")
+  start.time <- Sys.time()
   z <-  model.sdll(sol.wbs2(x))
+  end_time <- Sys.time()
   wbs2@nocpt <- z$no.of.cpt
   wbs2@cpt <- as.numeric(z$cpts)
   if(wbs2@nocpt == 0){wbs2@cpt <- 0}
   wbs2@mean <- mean.from.cpt(x, wbs2@cpt)
-  wbs2@time <- system.time(model.sdll(sol.wbs2(x)))[[3]]
+  wbs2@time <- as.numeric(end_time - start.time)
   
-  print("pelt")
-  z <- cpt.mean(x/mad(diff(x)/sqrt(2)), method="PELT")
+  if(verbose){print("pelt")}
   pelt <- new("cpt.est")
+  start.time <- Sys.time()
+  z <- cpt.mean(x/mad(diff(x)/sqrt(2)), method="PELT")
+  end_time <- Sys.time()
   if (any(z@cpts[1:(length(z@cpts)-1)] == length(x))){pelt@cpt = 0
   pelt@nocpt = 0}else{
     pelt@cpt <- as.numeric(z@cpts[1:(length(z@cpts)-1)])
     pelt@nocpt <- length(pelt@cpt)}
   pelt@mean <- mean.from.cpt(x, pelt@cpt)
-  pelt@time <- system.time(cpt.mean(x/mad(diff(x)/sqrt(2)), method="PELT"))[[3]]
+  pelt@time <- as.numeric(end_time - start.time)
   
-  print("not")
+  if(verbose){print("not")}
+  not <- new("cpt.est")
+  start.time <- Sys.time()
   z <- not(x,method="not",contrast="pcwsConstMean")
   cpt.ic = features(z,q.max=qmax_NOT)
-  not <- new("cpt.est")
+  end_time <- Sys.time()
   if(any(is.na(cpt.ic$cpt))) {not@cpt = 0
   not@nocpt <- 0}
   else {not@cpt= cpt.ic$cpt
   not@nocpt <- length(not@cpt)}
   not@mean <- mean.from.cpt(x, not@cpt)
-  not@time <- system.time(features(not(x,method="not",contrast="pcwsConstMean"),q.max = qmax_NOT))[[3]]
+  not@time <- as.numeric(end_time - start.time)
   
-  print('mosum')
-  z <- multiscale.localPrune(x)$cpts
+  if(verbose){print('mosum')}
   mosum <- new("cpt.est")
+  start.time <- Sys.time()
+  z <- multiscale.localPrune(x)$cpts
+  end_time <- Sys.time()
   if(length(z) == 0) {mosum@cpt = 0
   mosum@nocpt <- 0}
   else {mosum@cpt= z
   mosum@nocpt <- length(z)}
   mosum@mean <- mean.from.cpt(x, z)
-  mosum@time <- system.time(multiscale.localPrune(x)$cpts)[[3]]
+  mosum@time <- as.numeric(end_time - start.time)
   
-  print("mscp")
-  z <- mscp(x, delta = delta)$cp
+  if(verbose){print("mscp")}
   mscp <- new("cpt.est")
+  start.time <- Sys.time()
+  z <- mscp(x, delta = delta)$cp
+  end_time <- Sys.time()
   if(all(z == 0)) {mscp@cpt = 0
   mscp@nocpt <- 0}
   else {mscp@cpt= z
   mscp@nocpt <- length(z)}
   mscp@mean <- mean.from.cpt(x, z)
-  mscp@time <- system.time(capture.output(mscp(x, delta = delta)$cp))[[3]]
+  mscp@time <- as.numeric(end_time - start.time)
   
-  list(DAIS = DAIS, ID_th = ID_th, ID_sic = ID_sic, WBS_th = WBS_th, 
-       wbssbic = wbssbic, wbs2 = wbs2, pelt = pelt, not = not, mosum = mosum, 
-       mscp = mscp)
+  if(verbose){print("seedBS")}
+  seedBS_th <- new("cpt.est")
+  start.time <- Sys.time()
+  z <- seedBS(x)
+  cpt.z_1 = changepoints(z,th.const=1)
+  end_time <- Sys.time()
+  if(any(is.na(cpt.z_1$cpt.th[[1]]))){seedBS_th@cpt = 0}
+  else{seedBS_th@cpt <- cpt.z_1$cpt.th[[1]]}
+  seedBS_th@nocpt <- cpt.z_1$no.cpt.th
+  seedBS_th@mean <- mean.from.cpt(x, seedBS_th@cpt)
+  seedBS_th@time <- as.numeric(end_time - start.time)
+  
+  seedBS_ic <- new("cpt.est")
+  if(any(is.na(cpt.z_1$cpt.ic[[1]]))) {seedBS_ic@cpt = 0}
+  else {seedBS_ic@cpt= cpt.z_1$cpt.ic[[1]]}
+  seedBS_ic@nocpt <- cpt.z_1$no.cpt.ic[[1]]
+  seedBS_ic@mean <- mean.from.cpt(x, seedBS_ic@cpt) ## The computational time is the same as in seedBS_th
+  
+  if(verbose){print("DP_univar")}
+  DP_univar <- new("cpt.est")
+  start.time <- Sys.time()
+  z <- DP.univar(x, gamma = 5, delta = 5)
+  end_time <- Sys.time()
+  if(length(z$cpt) == 0){DP_univar@cpt = 0}
+  else{DP_univar@cpt <- z$cpt}
+  DP_univar@nocpt <- length(z$cpt)
+  DP_univar@mean <- mean.from.cpt(x, DP_univar@cpt)
+  DP_univar@time <- as.numeric(end_time - start.time)
+  
+  list(DAIS = DAIS, ID = ID, ID_th = ID_th, ID_sic = ID_sic, WBS_th = WBS_th, 
+       wbssbic = wbssbic, wbs2 = wbs2, pelt = pelt, not = not, mosum = mosum, mscp = mscp,
+       seedBS_th = seedBS_th, seedBS_ic = seedBS_ic, DP_univar = DP_univar)
 }
 
-sim.study.thr <- function(signal, true.cpt=NULL,sigma, m = 100, seed = NULL, const = 1.15, points=3,
-                          Kmax_wbs = 50, qmax_NOT = 25, delta = 20) {
+sim.study.thr <- function(signal, true.cpt=NULL,sigma, m = 100, seed = NULL, const = 1.2, points=3,
+                          qmax_NOT = 25, delta = 20, verbose = FALSE) {
   
   setClass("est.eval", representation(avg.signal="numeric",mean="list",cpt="list",diff="matrix",dh="numeric",cptall="numeric",dnc="numeric",
                                       mse="numeric", time= "numeric", det_delay="numeric"), 
@@ -142,6 +191,7 @@ sim.study.thr <- function(signal, true.cpt=NULL,sigma, m = 100, seed = NULL, con
   
   ts <- list()
   DAIS <- new("est.eval")
+  ID <- new("est.eval")
   ID_th <- new("est.eval")
   ID_sic <- new("est.eval")
   WBS_th <- new("est.eval")
@@ -151,6 +201,9 @@ sim.study.thr <- function(signal, true.cpt=NULL,sigma, m = 100, seed = NULL, con
   not <- new("est.eval")
   mosum <- new("est.eval")
   mscp <- new("est.eval")
+  seedBS_th <- new("est.eval")
+  seedBS_ic <- new("est.eval")
+  DP_univar <- new("est.eval")
   
   no.of.cpt <- sum(abs(diff(signal)) > 0)
   n <- length(signal)
@@ -164,7 +217,7 @@ sim.study.thr <- function(signal, true.cpt=NULL,sigma, m = 100, seed = NULL, con
     x <- signal + sigma * rnorm(n)
     ts[[i]] <- x
     
-    est <- sim_thr(x, const = const, points=points, Kmax_wbs = Kmax_wbs, qmax_NOT = qmax_NOT, delta = delta)
+    est <- sim_thr(x, const = const, points=points, qmax_NOT = qmax_NOT, delta = delta, verbose = verbose)
     
     DAIS@dnc[i] <- est$DAIS@nocpt - no.of.cpt
     DAIS@mse[i] <- mean((est$DAIS@mean - signal)^2)
@@ -172,6 +225,13 @@ sim.study.thr <- function(signal, true.cpt=NULL,sigma, m = 100, seed = NULL, con
     DAIS@diff <- abs(matrix(est$DAIS@cpt,nrow=no.of.cpt,ncol=length(est$DAIS@cpt),byr=T)-matrix(true.cpt,nrow=no.of.cpt,ncol=length(est$DAIS@cpt),byr=F))
     DAIS@dh[i] <- max(apply(DAIS@diff,1,min),apply(DAIS@diff,2,min))/ns
     DAIS@time[i] <- est$DAIS@time
+    
+    ID@dnc[i] <- est$ID@nocpt - no.of.cpt
+    ID@mse[i] <- mean((est$ID@mean - signal)^2)
+    ID@cpt[[i]] <- est$ID@cpt
+    ID@diff <- abs(matrix(est$ID@cpt,nrow=no.of.cpt,ncol=length(est$ID@cpt),byr=T)-matrix(true.cpt,nrow=no.of.cpt,ncol=length(est$ID@cpt),byr=F))
+    ID@dh[i] <- max(apply(ID@diff,1,min),apply(ID@diff,2,min))/ns
+    ID@time[i] <- est$ID@time
     
     ID_th@dnc[i] <- est$ID_th@nocpt - no.of.cpt
     ID_th@mse[i] <- mean((est$ID_th@mean - signal)^2)
@@ -199,7 +259,7 @@ sim.study.thr <- function(signal, true.cpt=NULL,sigma, m = 100, seed = NULL, con
     wbssbic@cpt[[i]] <- est$wbssbic@cpt
     wbssbic@diff <- abs(matrix(est$wbssbic@cpt,nrow=no.of.cpt,ncol=length(est$wbssbic@cpt),byr=T)-matrix(true.cpt,nrow=no.of.cpt,ncol=length(est$wbssbic@cpt),byr=F))
     wbssbic@dh[i] <- max(apply(wbssbic@diff,1,min),apply(wbssbic@diff,2,min))/ns
-    wbssbic@time[i] <- WBS_th@time[i]
+    wbssbic@time[i] <- est$wbssbic@time
     
     wbs2@dnc[i] <- est$wbs2@nocpt - no.of.cpt
     wbs2@mse[i] <- mean((est$wbs2@mean - signal)^2)
@@ -236,46 +296,80 @@ sim.study.thr <- function(signal, true.cpt=NULL,sigma, m = 100, seed = NULL, con
     mscp@dh[i] <- max(apply(mscp@diff,1,min),apply(mscp@diff,2,min))/ns
     mscp@time[i] <- est$mscp@time
     
+    seedBS_th@dnc[i] <- est$seedBS_th@nocpt - no.of.cpt
+    seedBS_th@mse[i] <- mean((est$seedBS_th@mean - signal)^2)
+    seedBS_th@cpt[[i]] <- est$seedBS_th@cpt
+    seedBS_th@diff <- abs(matrix(est$seedBS_th@cpt,nrow=no.of.cpt,ncol=length(est$seedBS_th@cpt),byr=T)-matrix(true.cpt,nrow=no.of.cpt,ncol=length(est$seedBS_th@cpt),byr=F))
+    seedBS_th@dh[i] <- max(apply(seedBS_th@diff,1,min),apply(seedBS_th@diff,2,min))/ns
+    seedBS_th@time[i] <- est$seedBS_th@time
+    
+    seedBS_ic@dnc[i] <- est$seedBS_ic@nocpt - no.of.cpt
+    seedBS_ic@mse[i] <- mean((est$seedBS_ic@mean - signal)^2)
+    seedBS_ic@cpt[[i]] <- est$seedBS_ic@cpt
+    seedBS_ic@diff <- abs(matrix(est$seedBS_ic@cpt,nrow=no.of.cpt,ncol=length(est$seedBS_ic@cpt),byr=T)-matrix(true.cpt,nrow=no.of.cpt,ncol=length(est$seedBS_ic@cpt),byr=F))
+    seedBS_ic@dh[i] <- max(apply(seedBS_ic@diff,1,min),apply(seedBS_ic@diff,2,min))/ns
+    seedBS_ic@time[i] <- est$seedBS_th@time
+    
+    DP_univar@dnc[i] <- est$DP_univar@nocpt - no.of.cpt
+    DP_univar@mse[i] <- mean((est$DP_univar@mean - signal)^2)
+    DP_univar@cpt[[i]] <- est$DP_univar@cpt
+    DP_univar@diff <- abs(matrix(est$DP_univar@cpt,nrow=no.of.cpt,ncol=length(est$DP_univar@cpt),byr=T)-matrix(true.cpt,nrow=no.of.cpt,ncol=length(est$DP_univar@cpt),byr=F))
+    DP_univar@dh[i] <- max(apply(DP_univar@diff,1,min),apply(DP_univar@diff,2,min))/ns
+    DP_univar@time[i] <- est$DP_univar@time
+    
     gc()
   }
   
-  list(ts = ts, DAIS = DAIS, ID_th = ID_th, ID_sic = ID_sic, WBS_th = WBS_th, 
-       wbssbic = wbssbic, wbs2 = wbs2, pelt = pelt, not = not, mosum = mosum, 
-       mscp = mscp)
+  list(ts = ts, DAIS = DAIS, ID = ID, ID_th = ID_th, ID_sic = ID_sic, WBS_th = WBS_th, 
+       wbssbic = wbssbic, wbs2 = wbs2, pelt = pelt, not = not, mosum = mosum, mscp = mscp,
+       seedBS_th = seedBS_th, seedBS_ic = seedBS_ic, DP_univar = DP_univar)
 }
 
-seed.temp=15
-
-justnoise = rep(0,6000)
-NC.small = sim.study.thr(justnoise, sigma = 1, true.cpt = c(0), seed = seed.temp, const = 1.2)
-
-long_signal <- c(rep(0,5500), rep(1.5,5500))
-SIMR.large <- sim.study.thr(long_signal, true.cpt = 5500, sigma = 1, seed = seed.temp, points = 3, const = 1.2)
-
+#S1
 small_dist <- c(rep(0, 485), rep(1, 30), rep(0, 485))
-SIMR13.small <- sim.study.thr(small_dist, true.cpt = c(485, 515), sigma = 1,seed = seed.temp, const = 1.2)
+SIMR13.small <- sim.study.thr(small_dist, true.cpt = c(485, 515), sigma = 1, delta = 15)
 
-stairs = c(rep(1,10), rep(2,10), rep(3,10), rep(4,10), rep(5,10), rep(6,10), rep(7,10), rep(8,10), rep(9,10), rep(10,10), 
-             rep(11,10), rep(12,10), rep(13,10), rep(14,10), rep(15,10))
-SIMR5.small = sim.study.thr(stairs, true.cpt = seq(11,141,10), sigma = 0.3, seed = seed.temp, const = 1.2)
+#S2
+stairs10 = c(rep(1,10),rep(2,10),rep(3,10),rep(4,10),rep(5,10),rep(6,10),rep(7,10),
+             rep(8,10),rep(9,10),rep(10,10),rep(11,10),rep(12,10),rep(13,10),rep(14,10),rep(15,10))
+SIMR5.small = sim.study.thr(stairs10, true.cpt = seq(11, 141, 10), sigma = 0.3, delta = 5)
 
-mix = c(rep(7,11), rep(-7,10), rep(6,20), rep(-6,20), rep(5,30), rep(-5,30), rep(4,40), rep(-4,40), rep(3,50), rep(-3,50))
-SIMR3.small2 = sim.study.thr(mix, true.cpt = c(11,21,41,61,91,121,161,201,251), sigma = 4, seed = seed.temp, const = 1.2)
+#S3
+mix2 = c(rep(7,11),rep(-7,10),rep(6,20),rep(-6,20),rep(5,30),rep(-5,30),rep(4,40),rep(-4,40),
+         rep(3,50),rep(-3,50))
+SIMR3.small2 = sim.study.thr(mix2,true.cpt=c(11, 21, 41, 61, 91, 121, 161, 201, 251), sigma = 4, delta = 5)
 
-many_cpts <- rep(c(rep(0, 7), rep(5, 7)), 50)
-SIMR.many5 <- sim.study.thr(many_cpts, true.cpt = which(diff(many_cpts) != 0), 1, seed = seed.temp, const = 1.2)
+#S4
+many_cpts_mix <- c(rep(0,5), rep(5,7), rep(0,5), rep(6,8), rep(0,6), rep(4,7), 
+                   rep(0,6), rep(5,6), rep(0,6), rep(6,5), rep(0,6), rep(4,8))
+many_cpts_mix_sim <- sim.study.thr(many_cpts_mix, true.cpt = which(abs(diff(many_cpts_long)) > 0), sigma = 1, delta = 3)
 
-small_dist2 <- c(rep(0, 485), rep(1, 30), rep(0, 385), rep(1.5,30), rep(0,70))
-SIMR14.small <- sim.study.thr(small_dist2, true.cpt = c(485, 515, 900, 930), sigma = 1,seed = seed.temp, const = 1.2)
+#S5
+many_cpts <- rep(c(rep(0, 7), rep(4, 7)), 50)
+SIMR.many <- sim.study.thr(many_cpts, true.cpt = which(diff(many_cpts) != 0), sigma = 1, qmax_NOT = 100, delta = 4)
 
-small_dist3 <- c(rep(0,100), rep(1.5,30), rep(0, 355), rep(1, 30), rep(0, 355), rep(1.5,30), rep(0,100))
-SIMR15.small <- sim.study.thr(small_dist3, true.cpt = c(100, 130, 485, 515, 870, 900), sigma = 1, seed = seed.temp, const = 1.2)
+#S6
+many_cpts_long <- rep(c(rep(0, 5), rep(5, 5)), 60) #S6
+many_cpts_long_sim <- sim.study.thr(many_cpts_long, true.cpt = which(abs(diff(many_cpts_long)) > 0), 
+                                    sigma = 0.9, qmax_NOT = 120, delta = 3)
 
-teeth = c(rep(0,11), rep(1,20), rep(0,20), rep(1,20), rep(0,20), rep(1,20), rep(0,20), rep(1,20),
-            rep(0,20), rep(1,20), rep(0,20), rep(1,20), rep(0,20), rep(1,19))
-SIMR4.small = sim.study.thr(teeth,true.cpt = seq(11,251,20),0.4, seed = seed.temp, const = 1.2)
+#S11
+justnoise = rep(0,6000) 
+NC.small = sim.study.thr(justnoise, sigma = 1, true.cpt = c(0))
 
+#S12
+long_signal <- c(rep(0,5500), rep(1.5,5500)) 
+SIMR.large <- sim.study.thr(long_signal, true.cpt=5500, sigma=1)
 
+# S13
+small_dist3 <- c(rep(0,100), rep(1.5,30), rep(0, 355), rep(1, 30), rep(0, 355), 
+                 rep(1.5,30), rep(0,100)) 
+SIMR15.small <- sim.study.thr(small_dist3, true.cpt = c(100, 130, 485, 515, 870, 900), sigma = 1, delta = 15)
+
+#S14
+teeth10 = c(rep(0,11),rep(1,20),rep(0,20),rep(1,20),rep(0,20),rep(1,20),rep(0,20),rep(1,20),
+            rep(0,20),rep(1,20),rep(0,20),rep(1,20),rep(0,20),rep(1,19)) 
+SIMR4.small = sim.study.thr(teeth10, true.cpt = seq(11, 251, 20), sigma = 0.4, delta = 5)
 
 
 
@@ -575,33 +669,33 @@ linear_rev.sim.study <- function(model, sigma, m = 100, seed = NULL, gen_qmax = 
        MARS = MARS, t1f = t1f, trendsegment = trendsegment)
 }
 
-## Signals
-model.justnoise.wave <- list(name = "justnoise_wave", cpt.type = "pcwsLinContMean",
-                             cpt = numeric(0), n = 1000, start = c(0,1))
-lin.SIMR.justnoise = linear_rev.sim.study(model.justnoise.wave, m = 100, sigma = 1)
-
+## S8
 model.wave1 <- list(name = "wave1", cpt.type = "pcwsLinContMean", cpt = c(256, 512, 768, 1024, 1152, 1280, 1344), jump.size = (-1)^(1:7) * 
                       (1:7)/64, n = 1408, start = c(1, 1/256))
 lin.SIMR1 = linear_rev.sim.study(model.wave1, 1, seed = 16)
 
+## S9
 model.wave2 <- list(name = "wave2", cpt.type = "pcwsLinContMean", cpt = (1:99) * 15, jump.size = (-1)^{1:100}, 
                     n = 15 * 100, start = c(-1/2, 1/40))
 lin.SIMR2 = linear_rev.sim.study(model.wave2, 1, seed = 16, gen_qmax = 200)
 
+## S10
 model.wave3 <- list(name = "wave3", cpt.type = "pcwsLinContMean", cpt = (1:119) * 7, jump.size = (-1)^{1:120}, 
                     n = 840, start = c(-1/2, 1/32))
 lin.SIMR3 = linear_rev.sim.study(model.wave3, m = 100, sigma = 0.3, seed = 16)
 
+## S15
+model.justnoise.wave <- list(name = "justnoise_wave", cpt.type = "pcwsLinContMean",
+                             cpt = numeric(0), n = 1000, start = c(0,1))
+lin.SIMR.justnoise = linear_rev.sim.study(model.justnoise.wave, m = 100, sigma = 1)
+
+## S16
 model.wave4 <- list(name = "wave4", cpt.type = "pcwsLinContMean", cpt = (1:9) * 20,
                     jump.size = c(1/6, 1/2,-3/4,-1/3, -2/3,1,1/4,3/4,-5/4), n = 200, start = c(1, 1/32))
 lin.SIMR4 = linear_rev.sim.study(model.wave4, m = 100, sigma = 0.3, seed = 16)
 
-model.wave5 <- list(name = "wave5", cpt.type = "pcwsLinContMean", cpt = (1:19) * 50,
-                    jump.size = c(-1/16,-5/16,-5/8,1, 5/16,15/32,-5/8,-7/32,-3/4,13/16,5/16,19/32,-1,-5/8,
-                                  23/32,1/2,15/16,-25/16,-5/4), n = 1000, start = c(1, 1/32))
-lin.SIMR5 = linear_rev.sim.study(model.wave5, m = 100, sigma = 0.6, seed = 5)
-
-model.wave6 <- list(name = "wave6", cpt.type = "pcwsLinContMean", cpt = (1:49) * 7,
+## S15
+model.wave5 <- list(name = "wave5", cpt.type = "pcwsLinContMean", cpt = (1:49) * 7,
                     jump.size = c(rep(c(-2.5,2.5),50)), n = 350, start = c(0, 1))
-lin.SIMR6 = linear_rev.sim.study(model.wave6, m = 100, sigma = 1)
+lin.SIMR5 = linear_rev.sim.study(model.wave5, m = 100, sigma = 1)
 
