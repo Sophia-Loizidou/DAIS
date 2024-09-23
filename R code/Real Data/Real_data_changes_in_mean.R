@@ -15,8 +15,8 @@ data$date <- sapply(data$Start_Date_Time, split_date)
 crime <- data %>% count(date)
 crime <- crime %>% arrange(mdy(crime$date))
 
-## Only use data starting from 01/22/2020 until 07/31/2023
-crime_small <- crime[1301:2587,]
+## Only use data starting from 01/22/2020 until 08/31/2024
+crime_small <- crime[1301:2984,]
 
 ## Transform data using Anscombe transformation as they are integer valued
 cases_transformed <- 2*sqrt(crime_small$n + 3/8)

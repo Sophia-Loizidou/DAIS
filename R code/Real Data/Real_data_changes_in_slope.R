@@ -7,7 +7,7 @@ data <- read.csv('path_to_data')
 
 data <- read.csv("/Users/sophia.loizidou/Library/Mobile Documents/com~apple~CloudDocs/Sophia/Research Project/New code/Two sided only/Real data slope/EURGBP=X August.csv")
 
-## Keep date and close prices
+## Only use date and close prices
 data <- data[,c(1,5)]
 cpt <- DAIS(data$Close, contrast = 'slope')
 
