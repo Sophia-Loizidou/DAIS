@@ -35,6 +35,7 @@ largest_diff <- function(x){
 }
 
 #list of left and right expanding intervals around the largest difference
+#used for DAIS_mean and DAIS_slope
 endpoints <- function(l_diff, s, e, points = 3){
   if(s > e){stop("s should be smaller than e")}
   if(s > l_diff){stop("l_diff should be larger than s")}
@@ -204,22 +205,6 @@ largest_diff_slope <- function(x){
     diff <- sort.int(abs(diff(diff(x))), decreasing=TRUE, index.return = TRUE)$ix[1]
   }
   return(diff)
-}
-
-#list of left and right expanding intervals around the point
-#same as for changes in the mean
-endpoints <- function(l_diff, s, e, points = 3){
-  intervals <- list()
-  
-  #left end-points
-  intervals[[1]] <- c(seq(l_diff, s, -points))
-  if (intervals[[1]][length(intervals[[1]])] != s){intervals[[1]] = c(intervals[[1]], s)}
-  
-  #right end-points
-  intervals[[2]] <- seq(min(e, l_diff + points - 1), e, points)
-  if (intervals[[2]][length(intervals[[2]])] != e){intervals[[2]] = c(intervals[[2]], e)}
-  
-  return(intervals)
 }
 
 #Calculate contrast function
