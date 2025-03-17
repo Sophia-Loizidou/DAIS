@@ -7,7 +7,7 @@ DAIS <- function(x, contrast = c("mean", "slope"), sigma = NULL, thr_const = NUL
   
   if(contrast == "mean"){
     if(is.null(sigma)){sigma = stats::mad(diff(x)/sqrt(2))}
-    if(is.null(thr_const)){thr_const = 1.2}
+    if(is.null(thr_const)){thr_const = 1.7/sqrt(2)}
     cpt <- DAIS_mean(x, sigma = sigma, thr_const = thr_const,
                      thr_fin = sigma * thr_const * sqrt(2 * log(length(x))),
                      s = s, e = e, points = points, k_l = 1, k_r = 1,
@@ -15,7 +15,7 @@ DAIS <- function(x, contrast = c("mean", "slope"), sigma = NULL, thr_const = NUL
                      cpoints = numeric(), verbose = verbose)
   } else if(contrast == "slope"){
     if(is.null(sigma)){sigma = stats::mad(diff(diff(x)))/sqrt(6)}
-    if(is.null(thr_const)){thr_const = 1.5}
+    if(is.null(thr_const)){thr_const = 2.1/sqrt(2)}
     cpt <- DAIS_slope(x, sigma = sigma, thr_const = thr_const,
                       thr_fin = sigma * thr_const * sqrt(2 * log(length(x))),
                       s = s, e = e, points = points, k_l = 1, k_r = 1,
