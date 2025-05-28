@@ -4,7 +4,7 @@ A data-adaptive change-point detection method is proposed in Anastasiou & Loizid
 
 $X_t = f_t + \sigma \epsilon_t, \quad t = 1, 2, \ldots, T$
 
-where $X_t$ are the observed data and $f_t$ is a one-dimensional deterministic signal with structural changes at certain points. The algorithms provided can be applied to piecewise-constant (changes in the mean) and piecewise-linear (changes in the slope) signals $f_t$. 
+where $X_t$ are the observed data and $f_t$ is a one-dimensional deterministic signal with structural changes at certain points. The algorithms provided can be applied to piecewise-constant (changes in the mean) and continuous, piecewise-linear (changes in the slope) signals $f_t$. 
 
 ### Brief description of the algorithm
 The algorithm first identifies the point where the "largest difference" occurs in the interval $[s,e]$, and uses left- and right-expanding intervals around that point. This is done in a sequential way, expanding once either only to the left or only to the right at each step. Each interval is checked by comparing the value of a contrast function with a threshold. This way each change-point is detected in an interval where it is isolated. As soon as a change-point is detected, DAIS restarts on two disjoint intervals, one ending at the start-point of the interval where the detection occurred and one starting from the end-point of that interval.
