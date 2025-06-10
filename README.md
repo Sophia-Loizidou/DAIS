@@ -1,6 +1,6 @@
 # DAIS
 
-A data-adaptive change-point detection method is proposed in Anastasiou & Loizidou (2024) (https://arxiv.org/abs/2404.19344), called DAIS (Data Adaptive ISolation). We work under the model
+A data-adaptive change-point detection method is proposed in Anastasiou & Loizidou (2025) (https://link.springer.com/article/10.1007/s11222-025-10643-5), called DAIS (Data Adaptive ISolation). We work under the model
 
 $X_t = f_t + \sigma \epsilon_t, \quad t = 1, 2, \ldots, T$
 
